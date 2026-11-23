@@ -17,7 +17,7 @@
 :root{color-scheme:dark;--bg:#070418;--ink:#f3efff;--muted:#b9b0e4;--glass:rgba(20,12,52,.7);--line:rgba(255,255,255,.14);--coral:#ff7a8a;--aqua:#5ef2e0}
 *{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:16px/1.45 Fredoka,ui-rounded,system-ui,sans-serif;overflow:hidden;overscroll-behavior:none;touch-action:none;-webkit-user-select:none;user-select:none}
-#c,#fl{position:fixed;inset:0;width:100%;height:100%;display:block}#fl{pointer-events:none}
+#c,#fl,#fx{position:fixed;inset:0;width:100%;height:100%;display:block}#fl,#fx{pointer-events:none}
 .hud{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 12px) 16px 0;display:flex;justify-content:space-between;align-items:center;gap:8px;pointer-events:none}
 .pill{background:rgba(10,6,30,.45);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:600;font-size:18px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);white-space:nowrap}
 #x2{color:#ffd6f0;border-color:rgba(255,122,138,.6);font-size:15px}
@@ -54,6 +54,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:3
 <canvas id="fl" aria-hidden="true"></canvas>
 <canvas id="c" aria-label="Game: slide left and right to steer your fish"></canvas>
 
+<canvas id="fx" aria-hidden="true"></canvas>
 <div class="hud hidden" id="hud">
   <div class="pill" id="score">★ 0</div>
   <div class="pill hidden" id="x2">×2</div>
@@ -299,6 +300,34 @@ function force(x,y,rad,vx,vy){if(GPU())FL.vel(x,y,rad,vx,vy);else push(x,y,Math.
 function blast(x,y,rad,str){if(GPU()){for(let i=0;i<10;i++){const a=i/10*TAU;FL.vel(x+Math.cos(a)*rad*.5,y+Math.sin(a)*rad*.5,rad*.45,Math.cos(a)*str,Math.sin(a)*str)}}else burst(x,y,rad/W*GW,str/W*GW)}
 function swirl(x,y,rad,str){if(GPU()){for(let i=0;i<6;i++){const a=i/6*TAU;FL.vel(x+Math.cos(a)*rad*.6,y+Math.sin(a)*rad*.6,rad*.42,-Math.sin(a)*str,Math.cos(a)*str)}}else whirl(x,y,rad/W*GW,str/W*GW*.05)}
 
+
+/* ---------- painted fish on the GPU: a soft mesh bent along a flexible spine ---------- */
+const FX=(()=>{try{
+ const cv=$('fx'),gl=cv.getContext('webgl',{alpha:true,premultipliedAlpha:true,antialias:true,depth:false,stencil:false});if(!gl)return null;
+ const mk=(t,src)=>{const o=gl.createShader(t);gl.shaderSource(o,src);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(o));return o};
+ const pr=gl.createProgram();gl.attachShader(pr,mk(gl.VERTEX_SHADER,'attribute vec2 aP,aT;uniform vec2 uR;varying vec2 vT;void main(){vT=aT;vec2 p=aP/uR*2.-1.;gl_Position=vec4(p.x,-p.y,0.,1.);}'));
+ gl.attachShader(pr,mk(gl.FRAGMENT_SHADER,'precision mediump float;varying vec2 vT;uniform sampler2D uS;uniform float uA;void main(){gl_FragColor=texture2D(uS,vT)*uA;}'));gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS))throw new Error('fish link');
+ gl.useProgram(pr);const aP=gl.getAttribLocation(pr,'aP'),aT=gl.getAttribLocation(pr,'aT'),uR=gl.getUniformLocation(pr,'uR'),uA=gl.getUniformLocation(pr,'uA');
+ const CO=6,RO=56,NV=(CO+1)*(RO+1),pos=new Float32Array(NV*2),uv=new Float32Array(NV*2),idx=new Uint16Array(CO*RO*6);
+ for(let j=0;j<=RO;j++)for(let i=0;i<=CO;i++){const k=j*(CO+1)+i;uv[k*2]=i/CO;uv[k*2+1]=j/RO}
+ let q=0;for(let j=0;j<RO;j++)for(let i=0;i<CO;i++){const a=j*(CO+1)+i,b=a+1,c2=a+CO+1,d=c2+1;idx.set([a,b,c2,b,d,c2],q);q+=6}
+ const pb=gl.createBuffer(),tb=gl.createBuffer(),ib=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,tb);gl.bufferData(gl.ARRAY_BUFFER,uv,gl.STATIC_DRAW);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,idx,gl.STATIC_DRAW);gl.bindBuffer(gl.ARRAY_BUFFER,pb);gl.bufferData(gl.ARRAY_BUFFER,pos,gl.DYNAMIC_DRAW);
+ gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);const tex=new Map();
+ const getTex=im=>{let t=tex.get(im);if(t)return t;if(!im||!im.complete||!im.naturalWidth)return null;const c=document.createElement('canvas');c.width=256;c.height=512;c.getContext('2d').drawImage(im,0,0,256,512);t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c);gl.generateMipmap(gl.TEXTURE_2D);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);tex.set(im,t);return t};
+ const api={ok:true,CO,RO,pos,size(){cv.width=W*DPR|0;cv.height=H*DPR|0;gl.viewport(0,0,cv.width,cv.height)},clear(){gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT)},
+  draw(im,alpha){const t=getTex(im);if(!t)return false;gl.useProgram(pr);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform2f(uR,W,H);gl.uniform1f(uA,alpha);gl.bindBuffer(gl.ARRAY_BUFFER,pb);gl.bufferSubData(gl.ARRAY_BUFFER,0,pos);gl.enableVertexAttribArray(aP);gl.vertexAttribPointer(aP,2,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,tb);gl.enableVertexAttribArray(aT);gl.vertexAttribPointer(aT,2,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.drawElements(gl.TRIANGLES,idx.length,gl.UNSIGNED_SHORT,0);return true}};
+ cv.addEventListener('webglcontextlost',e=>{e.preventDefault();api.ok=false});return api}catch(e){console.warn('fish gl off',e);return null}})();
+if(!FX)$('fx').style.display='none';
+/* flexible spine: head steady and upright, body and tail follow with a springy lag and a slow swimming wave */
+function artSpine(C,x,top,Hd,dt){const K=12,Ls=Hd/(K-1);let p=C.sp;if(!p){p=C.sp=new Float32Array(K*2);for(let i=0;i<K;i++){p[i*2]=x;p[i*2+1]=top+Ls*i}}
+ p[0]=x;p[1]=top;for(let i=1;i<K;i++){const j=i*2,f=i/(K-1);let dx=p[j]-p[j-2],dy=p[j+1]-p[j-1];const d=Math.hypot(dx,dy)||1;dx/=d;dy/=d;
+  const a=Math.sin(time*3-f*5+C.seed)*.2*Math.pow(f,1.3)+Math.sin(time*1.3-f*2+C.seed)*.07*f,tx=-Math.sin(a),ty=Math.cos(a),k=1-Math.exp(-dt*(f<.22?24:2.2+8.5*(1-f)));
+  dx+=(tx-dx)*k;dy+=(ty-dy)*k;const d2=Math.hypot(dx,dy)||1;p[j]=p[j-2]+dx/d2*Ls;p[j+1]=p[j-1]+dy/d2*Ls}}
+function crs(p,K,t){const i=Math.min(K-2,Math.floor(t)),f=t-i,i0=Math.max(0,i-1),i2=i+1,i3=Math.min(K-1,i+2),o=[0,0,0,0];for(let c=0;c<2;c++){const a=p[i0*2+c],b=p[i*2+c],cc=p[i2*2+c],d=p[i3*2+c];o[c]=.5*(2*b+(-a+cc)*f+(2*a-5*b+4*cc-d)*f*f+(-a+3*b-3*cc+d)*f*f*f);o[c+2]=.5*((-a+cc)+2*(2*a-5*b+4*cc-d)*f+3*(-a+3*b-3*cc+d)*f*f)}return o}
+function artMesh(C,x,y,dt){const F=C.F,s=C.s,im=F.im,Hd=s*5.4,Wd=Hd*im.naturalWidth/im.naturalHeight,top=y-s*1.05,K=12,P=FX.pos,CO=FX.CO,RO=FX.RO,fl=Math.sin(time*5+C.seed),ej=Math.round(RO*.42);artSpine(C,x,top,Hd,dt);
+ for(let j=0;j<=RO;j++){const v=j/RO,q=crs(C.sp,K,v*(K-1));let tx=q[2],ty=q[3];const d=Math.hypot(tx,ty)||1;tx/=d;ty/=d;const w=Wd*(1+.07*fl*Math.exp(-(((v-.2)/.08)**2)));
+  for(let i=0;i<=CO;i++){const o=(i/CO-F.hx)*w,k=(j*(CO+1)+i)*2;P[k]=q[0]+ty*o;P[k+1]=q[1]-tx*o}if(j===ej){C.ex=q[0];C.ey=q[1]}}}
+
 /* ---------- audio: synthesized originals ---------- */
 const A={ctx:null,voices:0,lastPick:0};
 function noiseBuf(ctx,sec,brown){const b=ctx.createBuffer(1,ctx.sampleRate*sec,ctx.sampleRate),d=b.getChannelData(0);let l=0;for(let i=0;i<d.length;i++){const w=Math.random()*2-1;if(brown){l=(l+.02*w)/1.02;d[i]=l*3.5}else d[i]=w}return b}
@@ -360,7 +389,7 @@ const fish={x:0,tx:0,svx:0,inv:0,hist:[],rot:0,rv:0};
 let me=null,pvC=null,frameDt=1/60,mode='menu',hasRun=false,time=0,speedMul=.5,zenT=0,spawnAcc=0,nextGap=0,zone=0,zoneCount=0,zoneDist=0,runStars=0,combo=0,comboT=0,pw={magnet:0,x2:0,comet:0,shower:0},showerT=0,shake=0,flash=0,bubT=0,ambT=0,starT=1,hold=0,launch=0,fishYc=0,rays=null;
 let obs=[],picks=[],parts=[],rings=[],sky=[];
 const cur={a:hx(ZONES[0].a),b:hx(ZONES[0].b)};
-function resize(){DPR=Math.min(2,window.devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*DPR|0;cv.height=H*DPR|0;fishR=clamp(Math.min(W,H)*.07,22,42);fishY=H*.6;if(me){me=makeCreature(me.F,fishR);me.eyes=true}if(GPU())FL.init();
+function resize(){DPR=Math.min(2,window.devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*DPR|0;cv.height=H*DPR|0;fishR=clamp(Math.min(W,H)*.07,22,42);fishY=H*.6;if(FX&&FX.ok)FX.size();if(me){me=makeCreature(me.F,fishR);me.eyes=true}if(GPU())FL.init();
  fish.x=fish.tx=clamp(fish.x||W/2,fishR,W-fishR);allocInk();sky=Array.from({length:90},(_,i)=>({x:Math.random(),y:Math.random(),l:i%3,tw:rand(0,TAU)}))}
 
 function addPlanet(x,y,r,ring,vx){const zp=ZONES[zone].pl,p=PLANETS[zp[Math.random()*zp.length|0]],q=hx(p[0]);obs.push({k:'planet',x,y,r,cr:r*.96,c:p,ic:[q[0]/255,q[1]/255,q[2]/255],vx:vx||0,spr:sphere(r,p[0],p[1],ring,false),ext:r*2.4})}
@@ -424,7 +453,7 @@ function update(dt){const play=mode==='play';
  const sc=H*.42*speedMul*ts*(pw.comet>0?1.9:1),move=play?sc:sc*.6;
  launch=Math.max(0,launch-dt*1.1);fishYc=fishY+H*.42*launch*launch;if(rays){rays.life-=dt;if(rays.life<=0)rays=null}
  if(play){if(keys.l)fish.tx-=W*1.2*dt*store.sens;if(keys.r)fish.tx+=W*1.2*dt*store.sens}else if(!hasRun)fish.tx=W/2+Math.sin(time*.6)*W*.2;
- fish.tx=clamp(fish.tx,fishR,W-fishR);const px=fish.x;fish.x+=(fish.tx-fish.x)*(1-Math.exp(-dt*16));fish.svx+=((fish.x-px)/Math.max(dt,1e-3)-fish.svx)*Math.min(1,dt*10);fish.hist.push(fish.x);if(fish.hist.length>48)fish.hist.shift();{const tg=clamp(fish.svx/(W*6),-.14,.14)+Math.sin(time*2.3)*.03;fish.rv+=(tg-fish.rot)*70*dt;fish.rv*=Math.exp(-7*dt);fish.rot+=fish.rv*dt}
+ fish.tx=clamp(fish.tx,fishR,W-fishR);const px=fish.x;fish.x+=(fish.tx-fish.x)*(1-Math.exp(-dt*10));fish.svx+=((fish.x-px)/Math.max(dt,1e-3)-fish.svx)*Math.min(1,dt*10);fish.hist.push(fish.x);if(fish.hist.length>48)fish.hist.shift();{const tg=clamp(fish.svx/(W*6),-.14,.14)+Math.sin(time*2.3)*.03;fish.rv+=(tg-fish.rot)*70*dt;fish.rv*=Math.exp(-7*dt);fish.rot+=fish.rv*dt}
  const F=FISH[store.fish],sp=Math.min(1,Math.abs(fish.svx)/(W*1.2)),h=F.tr[0]+(F.tr[1]-F.tr[0])*(.5+.5*Math.sin(time*1.4));
  if(GPU()){paint(me.ex||fish.x,me.ey||fishYc+fishR*.55,fishR*(pw.comet>0?.95:.62),hsl(pw.comet>0?time*320:h,1,.52),dt*(18+sp*24));paint(me.ex||fish.x,(me.ey||fishYc+fishR*.55)-fishR*.1,fishR*.22,[.9,.95,1],dt*5);force(me.ex||fish.x,(me.ey||fishYc+fishR*.55)+fishR*.35,fishR*.9,fish.svx*.5,H*(.15+sp*.12))}
  else{splat(fish.x,fishYc+fishR*.45,2.5,hsl(h,.95,.55),dt*(34+sp*46));push(fish.x,fishYc+fishR,3.5,fish.svx/W*GW*.9,0)}
@@ -455,7 +484,7 @@ function update(dt){const play=mode==='play';
   bubT-=dt;if(bubT<=0){bubT=rand(.3,1.5);const n=Math.random()<.25?(3+Math.random()*3|0):1,pan=rand(-.8,.8);for(let i=0;i<n;i++)bloop(rand(220,700),rand(.05,.1),rand(.025,.06),pan+rand(-.1,.1),A.water,rand(1.7,2.6),i*rand(.05,.11))}}
  hud()}
 
-function render(){g.setTransform(DPR,0,0,DPR,0,0);const sx=shake>.3?rand(-shake,shake):0,sy=shake>.3?rand(-shake,shake):0;
+function render(){if(FX&&FX.ok)FX.clear();g.setTransform(DPR,0,0,DPR,0,0);const sx=shake>.3?rand(-shake,shake):0,sy=shake>.3?rand(-shake,shake):0;
  if(GPU()){g.clearRect(0,0,W,H);FL.render(cur.a,cur.b)}else{const bg=g.createLinearGradient(0,0,0,H);bg.addColorStop(0,`rgb(${cur.a.map(Math.round)})`);bg.addColorStop(1,`rgb(${cur.b.map(Math.round)})`);g.fillStyle=bg;g.fillRect(0,0,W,H)}
  g.translate(sx,sy);
  for(const s of sky){g.fillStyle=`rgba(255,255,255,${(.25+s.l*.2)*(.6+.4*Math.sin(time*2+s.tw))})`;const z=1+s.l*.6;g.fillRect(s.x*W,s.y*H,z,z)}
@@ -485,7 +514,9 @@ function render(){g.setTransform(DPR,0,0,DPR,0,0);const sx=shake>.3?rand(-shake,
   g.globalAlpha=Math.min(1,k*1.3);const bz=fishR*(9+e*10);g.drawImage(glow('#ffffff'),-bz,-bz,bz*2,bz*2);g.globalAlpha=1;g.restore()}
  if(flash>0){g.save();g.setTransform(DPR,0,0,DPR,0,0);g.fillStyle=`rgba(255,240,252,${Math.min(1,flash)*.95})`;g.fillRect(0,0,W,H);g.restore()}
  if(rays){const k=rays.life/rays.max,e=1-k,dr=fishR*(2.2+e*.9),dg=g.createRadialGradient(fish.x,fishYc,0,fish.x,fishYc,dr);dg.addColorStop(0,'rgba(14,6,34,1)');dg.addColorStop(.78,'rgba(40,10,60,1)');dg.addColorStop(.93,'rgba(150,40,140,.9)');dg.addColorStop(1,'rgba(150,40,140,0)');g.globalAlpha=Math.min(1,k*2.2);g.fillStyle=dg;dot(g,fish.x,fishYc,dr);g.globalAlpha=1}
- {if(fish.inv>0&&mode==='play'&&!rays)g.globalAlpha=.45+.55*(.5+.5*Math.sin(time*20));drawCreature(g,me,fish.x+Math.sin(time*1.7)*fishR*.06,fishYc,fish.rot,frameDt);g.globalAlpha=1}
+ {const al=fish.inv>0&&mode==='play'&&!rays?.45+.55*(.5+.5*Math.sin(time*20)):1,mx=fish.x+Math.sin(time*1.7)*fishR*.05;let done=false;
+  if(me.F.a==='art'&&FX&&FX.ok&&me.F.im&&me.F.im.complete&&me.F.im.naturalWidth){const gz=fishR*3.2;g.save();g.globalCompositeOperation='lighter';g.globalAlpha=.32*al;g.drawImage(glow(me.F.c[0]),mx-gz,fishYc-gz+fishR*.7,gz*2,gz*2);g.restore();artMesh(me,mx,fishYc,frameDt);done=FX.draw(me.F.im,al)}
+  if(!done){g.globalAlpha=al;drawCreature(g,me,mx,fishYc,fish.rot,frameDt);g.globalAlpha=1}}
  if(pw.magnet>0&&mode==='play'){const a0=time*3,R1=fishR*2.1,fd=Math.min(1,pw.magnet);g.save();g.translate(fish.x,fishYc);g.globalAlpha=.8*fd;g.lineWidth=3;g.lineCap='round';g.strokeStyle='#ff5a78';g.beginPath();g.arc(0,0,R1,a0,a0+1.4);g.stroke();g.strokeStyle='#e8eef6';g.beginPath();g.arc(0,0,R1,a0+Math.PI,a0+Math.PI+1.4);g.stroke();g.globalAlpha=.2*fd;g.lineWidth=1.5;g.strokeStyle='#ffffff';g.beginPath();g.arc(0,0,R1*1.7+Math.sin(time*4)*4,0,TAU);g.stroke();g.restore();g.globalAlpha=1}
  if(pw.comet>0&&mode==='play'){const z=fishR*4.5;g.globalCompositeOperation='lighter';g.globalAlpha=.5*Math.min(1,pw.comet);g.drawImage(glow('#ffb02a'),fish.x-z,fishYc-z,z*2,z*2);g.globalAlpha=1;g.globalCompositeOperation='source-over'}
  for(const r of rings){g.strokeStyle=`rgba(255,255,255,${r.life/r.max*.7})`;g.lineWidth=4*r.life/r.max+1;g.beginPath();g.arc(r.x,r.y,r.r,0,TAU);g.stroke()}
