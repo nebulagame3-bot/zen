@@ -105,14 +105,12 @@ const save=()=>{try{localStorage.setItem('nebswim',JSON.stringify(store))}catch(
 
 /* ---------- the fish (originals, based on real sea creatures) ---------- */
 const FISH=[
- {n:'Royal Betta',a:'betta',v:'half',c:['#3a5cff','#8aa6ff','#141a5a'],fin:[222,282],tr:[225,275],f:'Bettas breathe air from the surface with a special organ called the labyrinth.'},
- {n:'Crimson Betta',a:'betta',v:'veil',c:['#e0283c','#ff7a8a','#5a0614'],fin:[345,375],tr:[350,375],f:'Veiltail bettas have long tails that droop like a silk veil.'},
- {n:'Koi Betta',a:'betta',v:'half',pat:'koi',c:['#fff1e8','#ff7a3a','#2a1414'],fin:[12,40],tr:[15,40],f:'Marble bettas like the koi betta can change their pattern as they grow.'},
- {n:'Galaxy Betta',a:'betta',v:'half',pat:'galaxy',c:['#1e2c86','#6a8aff','#0a0e3a'],fin:[235,305],tr:[225,295],f:'Galaxy bettas are speckled with shimmering scales like stars.'},
- {n:'Crowntail Betta',a:'betta',v:'crown',c:['#ff8a1a','#ffd45a','#9a3200'],fin:[22,52],tr:[25,50],f:'A crowntail’s fin rays reach past the webbing, like the points of a crown.'},
- {n:'Lavender Betta',a:'betta',v:'veil',c:['#c79cff','#ffd0f2','#6a3a9a'],fin:[280,325],tr:[285,320],f:'Wild bettas have short fins; long flowing fins were bred by people.'},
- {n:'Veiltail Goldfish',a:'betta',v:'gold',c:['#ff951a','#ffd88a','#b44e00'],fin:[26,48],tr:[28,45],f:'Veiltail goldfish trail a double tail that hangs like a curtain.'},
- {n:'Fancy Guppy',a:'betta',v:'guppy',c:['#4ad0c0','#c8fff4','#126060'],fin:[290,420],tr:[175,320],f:'Male guppies grow big, bright tails to impress females.'},
+ {n:'Sky Veil',a:'art',img:'fish-sky.webp',hx:.51,c:['#5ab8ff','#bfe6ff','#2a5ad8'],tr:[200,240],f:'Bettas breathe air from the surface with a special organ called the labyrinth.'},
+ {n:'Blossom Veil',a:'art',img:'fish-blossom.webp',hx:.452,c:['#ff6ad8','#ffc8f0','#b02ab0'],tr:[300,330],f:'Long flowing fins were bred by people; wild bettas have short fins.'},
+ {n:'Ember Veil',a:'art',img:'fish-ember.webp',hx:.447,c:['#ff8a2a','#ffe08a','#e0461a'],tr:[18,45],f:'Veiltail fish trail long tails that droop like a silk veil.'},
+ {n:'Lagoon Veil',a:'art',img:'fish-lagoon.webp',hx:.476,c:['#4ae0b0','#d8ff9a','#1aa08a'],tr:[110,165],f:'A betta flares its fins wide to look bigger.'},
+ {n:'Violet Veil',a:'art',img:'fish-violet.webp',hx:.461,c:['#a05aff','#f0b0ff','#6a1ad8'],tr:[265,295],f:'Male bettas build floating nests made of bubbles.'},
+ {n:'Opal Veil',a:'art',img:'fish-opal.webp',hx:.454,c:['#c8d8ff','#ffe0f8','#8aa0ff'],tr:[200,330],f:'Some fish shimmer because their scales hold tiny reflective crystals.'},
  {n:'Moon Jelly',a:'jelly',v:'moon',c:['#ffc6f0','#ff8ae0','#ffffff'],tr:[310,280],tn:16,arms:4,f:'Moon jellies have no brain, just a net of nerves.'},
  {n:'Sea Nettle',a:'jelly',v:'nettle',c:['#ffae4a','#ff6a2a','#ffe0b0'],tr:[25,10],tn:12,tlen:4.4,arms:4,alen:2.6,f:'Sea nettles trail long stinging tentacles to catch plankton.'},
  {n:'Lion’s Mane',a:'jelly',v:'mane',c:['#ff6a3a','#ffb84a','#ffe8c0'],tr:[18,42],tn:22,tlen:4.8,arms:6,alen:2.2,f:'The lion’s mane is one of the largest jellies, with tentacles that can stretch over 30 meters.'},
@@ -120,6 +118,7 @@ const FISH=[
  {n:'Flower Hat Jelly',a:'jelly',v:'flower',c:['#ffd6f0','#ff5a9a','#ffe47a'],tr:[330,410],tn:14,tlen:2.6,arms:3,f:'Flower hat jellies carry glowing, colorful tentacles on top of their bell.'},
  {n:'Comb Jelly',a:'jelly',v:'comb',c:['#d8f4ff','#a0e0ff','#ffffff'],tr:[180,300],tn:2,tlen:5,arms:0,f:'A comb jelly’s rainbow is light scattering off its beating combs.'},
 ];
+for(const F of FISH)if(F.img){F.im=new Image();F.im.decoding='async';F.im.src=F.img}
 function dot(c,x,y,r){c.beginPath();c.arc(x,y,r,0,TAU);c.fill()}
 function rad(c,x,y,r,a,b){const gr=c.createRadialGradient(x-r*.3,y-r*.35,r*.05,x,y,r);gr.addColorStop(0,a);gr.addColorStop(1,b);return gr}
 const cs=(h,s2,l,a)=>{const v=hsl(h,s2,l);return`rgba(${v[0]*255|0},${v[1]*255|0},${v[2]*255|0},${a})`};
@@ -134,11 +133,19 @@ function ropeStep(R,ax,ay,dt,st,wa,wf,wk,ph,dx0,dy0){const p=R.p,n=R.n,sg=R.seg;
   const a=Math.sin(time*wf-f*wk+ph)*wa*f,ca=Math.cos(a),sa=Math.sin(a),rx=dx0*ca-dy0*sa,ry=dx0*sa+dy0*ca,kk=k*(1-f*.55);
   dx+=(rx-dx)*kk;dy+=(ry-dy)*kk;const d2=Math.hypot(dx,dy)||1;p[j]=p[j-2]+dx/d2*sg;p[j+1]=p[j-1]+dy/d2*sg}}
 const BV={half:{sp:1.25,tl:2.5,k:9,fl:1.05,gw:1},veil:{sp:.62,tl:3.1,k:7,fl:1.3,gw:1},crown:{sp:1.05,tl:2.5,k:9,fl:1.1,gw:1,crown:1},gold:{sp:.85,tl:2.3,k:7,fl:.8,gw:1.35},guppy:{sp:.55,tl:2,k:7,fl:.45,gw:.8}};
-function makeCreature(F,s){const C={F,s,t:rand(0,10),seed:rand(0,TAU),eyes:false,ex:0,ey:0};
- if(F.a==='betta'){const V=BV[F.v];C.spine=Rope(6,s*.42);C.tail=[];for(let i=0;i<V.k;i++)C.tail.push(Rope(11,s*V.tl/10));C.fins=[];for(let i=0;i<6;i++)C.fins.push(Rope(7,s*V.fl/6));C.dots=[];for(let i=0;i<16;i++)C.dots.push([rand(.05,.9),rand(-.75,.75),rand(.4,1)])}
+function makeCreature(F,s){const C={F,s,t:rand(0,10),seed:rand(0,TAU),eyes:false,ex:0,ey:0,h:[]};
+ if(F.a==='art'){}
+ else if(F.a==='betta'){const V=BV[F.v];C.spine=Rope(6,s*.42);C.tail=[];for(let i=0;i<V.k;i++)C.tail.push(Rope(11,s*V.tl/10));C.fins=[];for(let i=0;i<6;i++)C.fins.push(Rope(7,s*V.fl/6));C.dots=[];for(let i=0;i<16;i++)C.dots.push([rand(.05,.9),rand(-.75,.75),rand(.4,1)])}
  else{C.tent=[];const M=F.tn||12;for(let i=0;i<M;i++)C.tent.push(Rope(14,s*(F.tlen||3.4)/13*rand(.75,1.1)));C.arms=[];const A=F.arms==null?4:F.arms;for(let i=0;i<A;i++)C.arms.push(Rope(10,s*(F.alen||1.8)/9))}
  return C}
-function drawCreature(c,C,x,y,rot,dt){c.save();if(C.F.a==='betta')drawBetta(c,C,x,y,rot,dt);else drawJelly(c,C,x,y,rot,dt);c.restore()}
+function drawArt(c,C,x,y,rot,dt){const F=C.F,s=C.s,im=F.im;C.t+=dt;C.h.push(x);if(C.h.length>36)C.h.shift();if(!im||!im.complete||!im.naturalWidth)return;
+ const iw=im.naturalWidth,ih=im.naturalHeight,Hd=s*5.4,Wd=Hd*iw/ih,top=y-s*1.05,left=x-Wd*F.hx,N=46,A0=c.globalAlpha,lagAt=v=>{const n=C.h.length;if(n<2)return 0;const fi=Math.min(n-1,v*30),i0=Math.floor(fi),fr=fi-i0,a=C.h[n-1-i0],b=C.h[Math.max(0,n-2-i0)];return clamp((a+(b-a)*fr-x)*.5,-Wd*.4,Wd*.4)*Math.pow(v,1.15)};
+ c.globalCompositeOperation='lighter';const gz=s*3.2;c.globalAlpha=A0*.32;c.drawImage(glow(F.c[0]),x-gz,y-gz+s*.7,gz*2,gz*2);c.globalAlpha=A0;c.globalCompositeOperation='source-over';
+ const T=c.getTransform(),sc=Math.abs(T.d)||1,rowH=Math.max(1,Math.round(Hd*sc/N))/sc,y0=(Math.round(top*sc+T.f)-T.f)/sc;
+ for(let i=0;i<N;i++){const v=i/N,wv=Math.pow(v,1.25),wave=Math.sin(time*3.4-v*6.5+C.seed)*Wd*.075*wv+Math.sin(time*1.6-v*2.5+C.seed)*Wd*.04*v,
+  fl=1+.06*Math.sin(time*5+C.seed)*Math.exp(-(((v-.2)/.08)**2)),w=Wd*fl,lean=rot*Hd*.9*v;
+  c.drawImage(im,0,v*ih,iw,ih/N,left-(w-Wd)*F.hx+wave+lagAt(v)-lean,y0+i*rowH,w,rowH)}C.ex=x+lagAt(.42);C.ey=top+.42*Hd}
+function drawCreature(c,C,x,y,rot,dt){c.save();if(C.F.a==='art')drawArt(c,C,x,y,rot,dt);else if(C.F.a==='betta')drawBetta(c,C,x,y,rot,dt);else drawJelly(c,C,x,y,rot,dt);c.restore()}
 function drawBetta(c,C,x,y,rot,dt){const F=C.F,s=C.s,V=BV[F.v],Dx=-Math.sin(rot),Dy=Math.cos(rot),fc=F.c,A0=c.globalAlpha;C.t+=dt;
  ropeStep(C.spine,x-Dx*s*.6,y-Dy*s*.6,dt,10,.2,7,2.6,C.seed,Dx,Dy);
  const S=C.spine.p,n=C.spine.n,L=[],Rr=[],Wd=[];
@@ -166,8 +173,8 @@ function drawBetta(c,C,x,y,rot,dt){const F=C.F,s=C.s,V=BV[F.v],Dx=-Math.sin(rot)
 function drawJelly(c,C,x,y,rot,dt){const F=C.F,s=C.s,fc=F.c,A0=c.globalAlpha,comb=F.v==='comb';C.t+=dt;const T=comb?2.6:1.7,u=(C.t%T)/T,cn=u<.28?Math.sin(u/.28*Math.PI/2):Math.pow(1-(u-.28)/.72,2);
  const bw=s*(comb?.6:1.02)*(1-.15*cn),bh=s*(comb?1.1:.76)*(1+.13*cn),Dx=-Math.sin(rot),Dy=Math.cos(rot),Rx=Dy,Ry=-Dx,oy=-cn*s*.08,mb=comb?0:bh*.25,
   WP=(lx,ly)=>[x+lx*Rx+(ly+oy)*Dx,y+lx*Ry+(ly+oy)*Dy];
- const M=C.tent.length;for(let i=0;i<M;i++){const t2=M>1?i/(M-1):.5,[ax,ay]=comb?WP((t2*2-1)*s*.12,bh*.92):WP((t2*2-1)*bw*.9,mb+s*.04);ropeStep(C.tent[i],ax,ay,dt,3,.42*(F.v==='mane'?1.25:1),2.4,3.2,i*.9+C.seed,Dx,Dy)}
- const AR=C.arms.length;for(let i=0;i<AR;i++){const[ax,ay]=WP(((i+.5)/AR-.5)*bw*.42,mb);ropeStep(C.arms[i],ax,ay,dt,3.5,.35,1.7,2.4,i*1.7+C.seed,Dx,Dy)}
+ const M=C.tent.length;for(let i=0;i<M;i++){const t2=M>1?i/(M-1):.5,[ax,ay]=comb?WP((t2*2-1)*s*.12,bh*.92):WP((t2*2-1)*bw*.9,mb+s*.04);ropeStep(C.tent[i],ax,ay,dt,5.5,.42*(F.v==='mane'?1.25:1),2.4,3.2,i*.9+C.seed,Dx,Dy)}
+ const AR=C.arms.length;for(let i=0;i<AR;i++){const[ax,ay]=WP(((i+.5)/AR-.5)*bw*.42,mb);ropeStep(C.arms[i],ax,ay,dt,5.5,.35,1.7,2.4,i*1.7+C.seed,Dx,Dy)}
  const ctr=WP(0,mb-bh*.4);C.ex=ctr[0]+Dx*bh*.7;C.ey=ctr[1]+Dy*bh*.7;
  c.globalCompositeOperation='lighter';const gz=s*3.8;c.globalAlpha=A0*.4;c.drawImage(glow(fc[1]),ctr[0]-gz,ctr[1]-gz,gz*2,gz*2);c.globalAlpha=A0;
  for(let i=0;i<M;i++){const P=rp(C.tent[i]),col=F.v==='flower'?cs(F.tr[0]+(F.tr[1]-F.tr[0])*i/Math.max(1,M-1),1,.68,1):fc[1];c.beginPath();smooth(c,P,1);c.strokeStyle=F.v==='flower'?col.replace(/,1\)$/,',.13)'):rgba(fc[1],.13);c.lineWidth=s*.1;c.stroke();c.strokeStyle=F.v==='flower'?col.replace(/,1\)$/,',.6)'):rgba(fc[1],.55);c.lineWidth=s*.028;c.stroke()}
@@ -417,7 +424,7 @@ function update(dt){const play=mode==='play';
  const sc=H*.42*speedMul*ts*(pw.comet>0?1.9:1),move=play?sc:sc*.6;
  launch=Math.max(0,launch-dt*1.1);fishYc=fishY+H*.42*launch*launch;if(rays){rays.life-=dt;if(rays.life<=0)rays=null}
  if(play){if(keys.l)fish.tx-=W*1.2*dt*store.sens;if(keys.r)fish.tx+=W*1.2*dt*store.sens}else if(!hasRun)fish.tx=W/2+Math.sin(time*.6)*W*.2;
- fish.tx=clamp(fish.tx,fishR,W-fishR);const px=fish.x;fish.x+=(fish.tx-fish.x)*(1-Math.exp(-dt*16));fish.svx+=((fish.x-px)/Math.max(dt,1e-3)-fish.svx)*Math.min(1,dt*10);fish.hist.push(fish.x);if(fish.hist.length>48)fish.hist.shift();{const tg=clamp(fish.svx/(W*2.2),-.6,.6)+Math.sin(time*2.3)*.07;fish.rv+=(tg-fish.rot)*70*dt;fish.rv*=Math.exp(-7*dt);fish.rot+=fish.rv*dt}
+ fish.tx=clamp(fish.tx,fishR,W-fishR);const px=fish.x;fish.x+=(fish.tx-fish.x)*(1-Math.exp(-dt*16));fish.svx+=((fish.x-px)/Math.max(dt,1e-3)-fish.svx)*Math.min(1,dt*10);fish.hist.push(fish.x);if(fish.hist.length>48)fish.hist.shift();{const tg=clamp(fish.svx/(W*6),-.14,.14)+Math.sin(time*2.3)*.03;fish.rv+=(tg-fish.rot)*70*dt;fish.rv*=Math.exp(-7*dt);fish.rot+=fish.rv*dt}
  const F=FISH[store.fish],sp=Math.min(1,Math.abs(fish.svx)/(W*1.2)),h=F.tr[0]+(F.tr[1]-F.tr[0])*(.5+.5*Math.sin(time*1.4));
  if(GPU()){paint(me.ex||fish.x,me.ey||fishYc+fishR*.55,fishR*(pw.comet>0?.95:.62),hsl(pw.comet>0?time*320:h,1,.52),dt*(18+sp*24));paint(me.ex||fish.x,(me.ey||fishYc+fishR*.55)-fishR*.1,fishR*.22,[.9,.95,1],dt*5);force(me.ex||fish.x,(me.ey||fishYc+fishR*.55)+fishR*.35,fishR*.9,fish.svx*.5,H*(.15+sp*.12))}
  else{splat(fish.x,fishYc+fishR*.45,2.5,hsl(h,.95,.55),dt*(34+sp*46));push(fish.x,fishYc+fishR,3.5,fish.svx/W*GW*.9,0)}
@@ -499,10 +506,12 @@ function hud(){if(runStars!==shownScore){shownScore=runStars;scoreEl.textContent
  const pt=Object.keys(pw).filter(k=>pw[k]>0).map(k=>POWS[k]+' '+Math.ceil(pw[k])).join(' · ');if(pt!==shownPw){shownPw=pt;x2El.textContent=pt;x2El.classList.toggle('hidden',!pt)}if(toastT>0){toastT-=1/60;if(toastT<=0)toastEl.style.opacity=0}}
 function toast(t,small){toastEl.innerHTML=`<small>${small}</small>${t}`;toastEl.style.opacity=1;toastT=2.6}
 const pv=$('pv'),pc=pv.getContext('2d');
-function drawPreview(){pc.setTransform(1,0,0,1,0,0);pc.clearRect(0,0,192,192);pc.globalCompositeOperation='lighter';pc.drawImage(glow(FISH[store.fish].c[0]),16,16,160,160);pc.globalCompositeOperation='source-over';if(!pvC||pvC.F!==FISH[store.fish]){pvC=makeCreature(FISH[store.fish],25);pvC.eyes=true}drawCreature(pc,pvC,96+Math.sin(time*.9)*10,50,Math.sin(time*.9+1)*.15,frameDt)}
+function drawPreview(){pc.setTransform(1,0,0,1,0,0);pc.clearRect(0,0,192,192);pc.globalCompositeOperation='lighter';pc.drawImage(glow(FISH[store.fish].c[0]),16,16,160,160);pc.globalCompositeOperation='source-over';if(!pvC||pvC.F!==FISH[store.fish]){pvC=makeCreature(FISH[store.fish],25);pvC.eyes=true}drawCreature(pc,pvC,96+Math.sin(time*.9)*12,FISH[store.fish].a==='art'?34:50,Math.sin(time*.9+1)*.06,frameDt)}
 function selectFish(i){store.fish=i;save();me=makeCreature(FISH[i],fishR);me.eyes=true;pvC=null;$('pvName').textContent=FISH[i].n;$('pvFact').textContent=FISH[i].f;document.querySelectorAll('.fb').forEach((b,j)=>b.setAttribute('aria-pressed',j===i))}
 $('grid').innerHTML=FISH.map((f,i)=>`<button class="fb" data-i="${i}" aria-pressed="false"><canvas width="112" height="112"></canvas>${f.n}</button>`).join('');
-document.querySelectorAll('.fb').forEach(b=>{const i=+b.dataset.i,c=b.querySelector('canvas').getContext('2d');{const C=makeCreature(FISH[i],19);C.eyes=true;for(let k=0;k<45;k++){c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,112,112);drawCreature(c,C,56,30,0,1/30)}}b.addEventListener('click',()=>{audioInit();selectFish(i);if(A.ctx)bloop(380,.1,.15,0,A.sfx,2.2)})});
+function drawThumb(c,i){const F=FISH[i],C=makeCreature(F,19);C.eyes=true;for(let k=0;k<(F.a==='art'?1:45);k++){c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,112,112);drawCreature(c,C,56,F.a==='art'?26:30,0,1/30)}}
+FISH.forEach((F,i)=>{if(F.im&&!F.im.complete)F.im.addEventListener('load',()=>{const k=document.querySelector(`.fb[data-i="${i}"] canvas`);if(k)drawThumb(k.getContext('2d'),i)})});
+document.querySelectorAll('.fb').forEach(b=>{const i=+b.dataset.i,c=b.querySelector('canvas').getContext('2d');drawThumb(c,i);b.addEventListener('click',()=>{audioInit();selectFish(i);if(A.ctx)bloop(380,.1,.15,0,A.sfx,2.2)})});
 for(const[id,key]of[['vMusic','music'],['vWater','water'],['vSfx','sfx']]){const el=$(id);el.value=store.mix[key];el.addEventListener('input',()=>{store.mix[key]=+el.value;save();if(A.ctx){const b=A[key],v=key==='music'?.55:key==='water'?.7:1;b.vol.gain.setTargetAtTime(+el.value*v,A.ctx.currentTime,.05)}})}
 const sens=$('vSens');sens.value=store.sens;sens.addEventListener('input',()=>{store.sens=+sens.value;save()});
 function launchFx(){const F=FISH[store.fish],c1=hsl(F.tr[0],.95,.6),c2=hsl(F.tr[1],.95,.55);for(let i=0;i<7;i++){const x=W/2+rand(-W*.1,W*.1);paint(x,H*rand(.88,1),W*rand(.06,.11),i%3?c1:[1,.25,.8],1.2);force(x,H,W*.1,rand(-1,1)*W*.4,-H*rand(1.2,2))}swirl(W*.32,H*.9,W*.12,W);swirl(W*.68,H*.9,W*.12,-W);launchSound();setTimeout(()=>toast(ZONES[zone].n,'New zone'),900)}
